@@ -12,9 +12,9 @@ config = {
     "PASSWORD_SERVIDOR_WS_OBS": "12345", # Contraseña configuracion del servidor websocket
     "IP_SERVIDOR_WS_OBS": "localhost",
     "PUERTO_SERVIDOR_WS_OBS": 4444,
-    "pantalla1": "nombre_pantalla1",
-    "pantalla2": "nombre_pantalla2",
-    "pantalla3": "nombre_pantalla3"
+    "escena1": "nombreEscena1",
+    "escena2": "nombreEscena2",
+    "escena3": "nombreEscena3"
 }
 
 def checkings(indexNextScene, listScenes, nameCurrentScene):
@@ -63,12 +63,11 @@ def main():
                 clientWs.connect()
 
             # informacion general de las escenas
-            scenes = clientWs.call(requests.GetSceneList())
-            # escena actual
-            getInfoCurrentScene = clientWs.call(requests.GetCurrentScene())
+            scenes: Baserequests = clientWs.call(requests.GetSceneList())
             # listado de las escenas
             listScenes = scenes.getScenes()
-            nameCurrentScene = getInfoCurrentScene.datain["name"]
+            # nombre escena actual
+            nameCurrentScene = scenes.datain["current-scene"]
             # mostramos el menu
             menuText = showMenu(listScenes, nameCurrentScene)
             # input
