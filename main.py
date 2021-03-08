@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from obswebsocket import obsws, requests, exceptions, events
+from obswebsocket.base_classes import Baserequests
+import websocket
 import logging
 import time
 
-from obswebsocket.base_classes import Baserequests
-import websocket
 
 # cambiar
 config = {
@@ -16,6 +16,23 @@ config = {
     "pantalla2": "nombre_pantalla2",
     "pantalla3": "nombre_pantalla3"
 }
+
+def checkings(indexNextScene, listScenes, nameCurrentScene):
+    # introducido un digito mayor al listado de escenas
+    if indexNextScene > len(listScenes):
+        logging.info("Digito mayor al numero de escenas")
+        return False
+
+    # digito inferiro a 0
+    if indexNextScene < 0:
+        logging.info("Digito inferior a 0")
+        return False
+
+    # escena actual
+    if listScenes[indexNextScene]["name"] == nameCurrentScene:
+        return False
+
+    return True
 
 def main():
     clientWs = obsws(
@@ -33,7 +50,7 @@ def main():
 
             scenes = clientWs.call(requests.GetSceneList())
             fuentes: Baserequests = clientWs.call(requests.GetSourcesList())
-        
+
             getInfoCurrentScene = clientWs.call(requests.GetCurrentScene())
             nameCurrentScene = getInfoCurrentScene.datain["name"]
             textoInput: list = [ "\n" ]
@@ -45,77 +62,34 @@ def main():
                 else:
                     textoInput.append("\n{}) {}".format(i + 1, currentName ) )
 
-            textoInput.append("\n0) Salir\n\nElige pantalla cambiar: ")
+            textoInput.append("\n\n0) Salir\n\nElige pantalla cambiar: ")
             textoInput = "".join(textoInput)
-            indexNextScene = int(input(textoInput)) - 1
+            rawInput: str = input(textoInput)
+            if str.isdigit(rawInput) == False:
+                continue
+            indexNextScene = int(rawInput) - 1
 
+            # salir
             if indexNextScene == -1:
                 salir = True
+                clientWs.disconnect()
                 break
 
-            if listScenes[indexNextScene]["name"] == nameCurrentScene:
+            # comprobaciones digitos
+            if checkings(indexNextScene, listScenes, nameCurrentScene) == False:
                 continue
 
+            # cambio de escena
             clientWs.call(requests.SetCurrentScene(listScenes[indexNextScene]["name"]))
 
-        except KeyboardInterrupt:
-            logging.error("error keyboard")
-            time.sleep(2)
         except exceptions.ConnectionFailure:
             logging.error("Fallo conexion. ¿Contraseña Mal? / ¿No iniciado OBS? / ¿Reconexion?")
             time.sleep(2)
         except websocket.WebSocketConnectionClosedException:
             logging.error("OBS Ha Desconectado")
             time.sleep(2)
-            # conexionError(clientWs)
-
-        # for currentScene in listScenes:
-            # sceneName = currentScene['name']
-            # if (currentScene["name"] == config["pantalla1"]):
-
-            # print(u"Switching to {}".format(sceneName))
-            # clientWs.call(requests.SetCurrentScene(sceneName))
-            
-            # time.sleep(2)
-
-        #     for currentSource in fuentes.getSources():
-        #     # for f in s["sources"]:
-        #         sourceName = currentSource['name']
-        #         print(u"Switching to {}".format(sourceName))
-        #         getInfo: Baserequests = clientWs.call(requests.GetSceneItemProperties(currentSource))
-        #         if "visible" not in getInfo.datain:
-        #             continue
-        #         visibleToggle = getInfo.getVisible()
-        #         visibleToggle = not visibleToggle
-        #         p = requests.SetSceneItemProperties(item=currentSource, visible=visibleToggle)
-        #         clientWs.call( p)
-
-        # print("End of list")
-
-  
-        
-# def conexionError(clientWs: obsws):
-
-#     for i in range(0, 15):
-#         try:
-#             reconnecting = True
-#             clientWs.reconnect()
-#             time.sleep(2)
-#             if clientWs.ws.connected == True:
-#                 break
-
-#         except KeyboardInterrupt:
-#             logging.error("error keyboard")
-#         except exceptions.ConnectionFailure:
-#             logging.error("Fallo conexion. ¿Contraseña Mal? / ¿No iniciado OBS? / ¿Reconexion?")
-#         except websocket.WebSocketConnectionClosedException:
-#             logging.error("OBS Ha Desconectado")
-#             time.sleep(2)
-#             conexionError(clientWs)
-
-#     if clientWs.ws.connected == True:
-#         main()
-
+        except ValueError:
+            logging.error("Caracter no permitido")
 
 if __name__ == '__main__':
     main()
