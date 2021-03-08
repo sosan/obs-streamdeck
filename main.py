@@ -34,6 +34,20 @@ def checkings(indexNextScene, listScenes, nameCurrentScene):
 
     return True
 
+def showMenu(listScenes, nameCurrentScene):
+    menuText: list = [ "\n" ]
+    for i in range(0, len(listScenes)):
+        currentName = listScenes[i]["name"]
+        if (currentName == nameCurrentScene):
+            menuText.append("\n{}) {} <<< Actual".format(i + 1, currentName ) )
+        else:
+            menuText.append("\n{}) {}".format(i + 1, currentName ) )
+
+    menuText.append("\n\n0) Salir\n\nElige pantalla cambiar: ")
+    menuText = "".join(menuText)
+
+    return menuText
+
 def main():
     clientWs = obsws(
         config["IP_SERVIDOR_WS_OBS"],
@@ -48,25 +62,21 @@ def main():
             if clientWs.ws == None or clientWs.ws.connected == False:
                 clientWs.connect()
 
+            # informacion general de las escenas
             scenes = clientWs.call(requests.GetSceneList())
-            fuentes: Baserequests = clientWs.call(requests.GetSourcesList())
-
+            # escena actual
             getInfoCurrentScene = clientWs.call(requests.GetCurrentScene())
-            nameCurrentScene = getInfoCurrentScene.datain["name"]
-            textoInput: list = [ "\n" ]
+            # listado de las escenas
             listScenes = scenes.getScenes()
-            for i in range(0, len(listScenes)):
-                currentName = listScenes[i]["name"]
-                if (currentName == nameCurrentScene):
-                    textoInput.append("\n{}) {} <<< Actual".format(i + 1, currentName ) )
-                else:
-                    textoInput.append("\n{}) {}".format(i + 1, currentName ) )
-
-            textoInput.append("\n\n0) Salir\n\nElige pantalla cambiar: ")
-            textoInput = "".join(textoInput)
-            rawInput: str = input(textoInput)
+            nameCurrentScene = getInfoCurrentScene.datain["name"]
+            # mostramos el menu
+            menuText = showMenu(listScenes, nameCurrentScene)
+            # input
+            rawInput: str = input(menuText)
+            # comprobacion si es un digito
             if str.isdigit(rawInput) == False:
                 continue
+            # index de la escena a cambiar
             indexNextScene = int(rawInput) - 1
 
             # salir
@@ -81,7 +91,8 @@ def main():
 
             # cambio de escena
             clientWs.call(requests.SetCurrentScene(listScenes[indexNextScene]["name"]))
-
+        
+        # excepciones
         except exceptions.ConnectionFailure:
             logging.error("Fallo conexion. ¿Contraseña Mal? / ¿No iniciado OBS? / ¿Reconexion?")
             time.sleep(2)
@@ -90,6 +101,7 @@ def main():
             time.sleep(2)
         except ValueError:
             logging.error("Caracter no permitido")
+
 
 if __name__ == '__main__':
     main()
